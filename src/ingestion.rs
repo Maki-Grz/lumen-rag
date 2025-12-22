@@ -1,22 +1,22 @@
 use crate::types::{Metadata, Passage};
-use crate::utils::compute_hash;
-use mongodb::bson::{doc, Bson};
-use mongodb::Client;
 use regex::Regex;
 use tokenizers::Tokenizer;
 
+/// Counts the number of tokens in a string using the provided tokenizer.
 fn count_tokens(tokenizer: &Tokenizer, text: &str) -> usize {
-    tokenizer.encode(text, true).unwrap().len()
+    tokenizer.encode(text, true).map(|e| e.len()).unwrap_or(0)
 }
 
+/// Keeps the last `n` tokens of a text string. Used for overlap.
 fn keep_last_tokens(tokenizer: &Tokenizer, text: &str, n: usize) -> String {
     let encoding = tokenizer.encode(text, true).unwrap();
     let ids = encoding.get_ids();
     let start = if ids.len() > n { ids.len() - n } else { 0 };
     let slice = &ids[start..];
-    tokenizer.decode(&*slice.to_vec(), true).unwrap()
+    tokenizer.decode(slice, true).unwrap_or_default()
 }
 
+/// Splits text into sections based on numbered lists (e.g., "1. Introduction").
 fn split_sections(text: &str) -> Vec<String> {
     let re = Regex::new(r"(?m)^(\d+\.\s.*)").unwrap();
     let mut sections = Vec::new();
@@ -50,6 +50,7 @@ fn make_passage(text: &str, metadata: &Option<Metadata>) -> Passage {
     }
 }
 
+/// Cleans raw text by normalizing newlines and trimming whitespace.
 fn clean_text(text: &str) -> String {
     text.replace("\r\n", "\n")
         .replace('\r', "\n")
@@ -80,27 +81,12 @@ fn split_sentences(text: &str) -> Vec<String> {
         }
     }
 
+    // Fallback if regex failed to find sentence structures
     if sentences.is_empty() && !text.trim().is_empty() {
         let words: Vec<&str> = text.split_whitespace().collect();
-        let mut current_sentence = String::new();
-        let mut word_count = 0;
-
-        for word in words {
-            if word_count > 0 {
-                current_sentence.push(' ');
-            }
-            current_sentence.push_str(word);
-            word_count += 1;
-
-            if word_count >= 25 {
-                sentences.push(current_sentence.trim().to_string());
-                current_sentence.clear();
-                word_count = 0;
-            }
-        }
-
-        if !current_sentence.trim().is_empty() {
-            sentences.push(current_sentence.trim().to_string());
+        let chunk_size = 25;
+        for chunk in words.chunks(chunk_size) {
+            sentences.push(chunk.join(" "));
         }
     }
 
@@ -141,31 +127,35 @@ fn split_large_text(
         }
 
         if end_idx < words.len() {
-            let overlap_text =
-                keep_last_tokens(tokenizer, &chunks[chunks.len() - 1], overlap_tokens);
+            // Check overlap
+            let overlap_text = keep_last_tokens(tokenizer, &chunks.last().unwrap(), overlap_tokens);
             let overlap_words: Vec<&str> = overlap_text.split_whitespace().collect();
+            // Move start_idx back by the number of overlapping words
             start_idx = end_idx.saturating_sub(overlap_words.len());
+            // Avoid infinite loop if overlap is entire chunk
+            if start_idx == end_idx {
+                start_idx += 1;
+            }
         } else {
             break;
         }
     }
-
     chunks
 }
 
+/// Main entry point for text segmentation.
+/// Splits text into semantic chunks suitable for embedding.
 pub fn segment_text(text: &str, metadata: Option<Metadata>, tokenizer: &Tokenizer) -> Vec<Passage> {
     let max_tokens = 200;
     let overlap_tokens = 30;
-    let min_tokens = 20;
+    let min_tokens = 3;
 
     let text = clean_text(text);
     let sections = split_sections(&text);
-
     let mut passages = Vec::new();
 
     for section in sections {
         let section_token_count = count_tokens(tokenizer, &section);
-
         if section_token_count > max_tokens * 3 {
             let chunks = split_large_text(&section, tokenizer, max_tokens, overlap_tokens);
             for chunk in chunks {
@@ -195,7 +185,6 @@ pub fn segment_text(text: &str, metadata: Option<Metadata>, tokenizer: &Tokenize
             }
 
             let sentences = split_sentences(paragraph);
-
             let mut buffer = String::new();
             let mut token_count = 0;
 
@@ -208,7 +197,6 @@ pub fn segment_text(text: &str, metadata: Option<Metadata>, tokenizer: &Tokenize
                         buffer.clear();
                         token_count = 0;
                     }
-
                     let sentence_chunks =
                         split_large_text(&sentence, tokenizer, max_tokens, overlap_tokens);
                     for chunk in sentence_chunks {
@@ -246,48 +234,46 @@ pub fn segment_text(text: &str, metadata: Option<Metadata>, tokenizer: &Tokenize
         }
     }
 
-    if passages.len() < 3 && !text.trim().is_empty() {
-        let aggressive_chunks =
-            split_large_text(&text, tokenizer, max_tokens / 2, overlap_tokens / 2);
-        passages.clear();
-        for chunk in aggressive_chunks {
-            if count_tokens(tokenizer, &chunk) >= min_tokens {
-                passages.push(make_passage(&chunk, &metadata));
-            }
-        }
+    if passages.is_empty() && !text.trim().is_empty() {
+        passages.push(make_passage(&text, &metadata));
     }
 
     passages
 }
 
-pub async fn store_passage(
-    mut passage: Passage,
-    client: &Client,
-    db_name: &str,
-    collection_name: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let hash = compute_hash(&passage.text);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hf_hub::{api::sync::Api, Repo, RepoType};
+    use tokenizers::Tokenizer;
 
-    let docs_collection = client
-        .database(db_name)
-        .collection::<Passage>(collection_name);
+    /// Helper to fetch a real tokenizer for tests (avoids mocking complexity)
+    fn get_tokenizer() -> Tokenizer {
+        let model_id = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
+        let repo = Repo::with_revision(model_id.to_string(), RepoType::Model, "main".to_string());
+        let api = Api::new().expect("Failed to create API").repo(repo);
+        let tokenizer_file = api
+            .get("tokenizer.json")
+            .expect("Failed to download tokenizer");
 
-    if let Some(existing_passage) = docs_collection
-        .find_one(doc! { "hash": hash as i64 })
-        .await?
-    {
-        return Ok(existing_passage.id.unwrap().to_string());
+        Tokenizer::from_file(tokenizer_file).expect("Failed to load tokenizer")
     }
 
-    passage.hash = Some(hash as i64);
+    #[test]
+    fn test_clean_text() {
+        let raw = "Hello  \r\n World";
+        assert_eq!(clean_text(raw), "Hello\nWorld");
+    }
 
-    let insert_result = docs_collection.insert_one(&passage).await?;
+    #[test]
+    #[ignore] // Ignored by default in CI to avoid network calls, run with `cargo test -- --ignored`
+    fn test_segmentation_logic() {
+        let tokenizer = get_tokenizer();
+        let text = "First sentence. Second sentence. ".repeat(20);
+        let passages = segment_text(&text, None, &tokenizer);
 
-    let id_str = match insert_result.inserted_id {
-        Bson::ObjectId(oid) => oid.to_string(),
-        Bson::String(s) => s,
-        other => return Err(format!("Unexpected inserted_id type: {:?}", other).into()),
-    };
-
-    Ok(id_str)
+        assert!(!passages.is_empty());
+        // Should be split into multiple chunks due to length
+        assert!(passages.len() > 1);
+    }
 }

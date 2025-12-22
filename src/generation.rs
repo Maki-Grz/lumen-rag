@@ -1,37 +1,39 @@
 use crate::types::{LLMMessage, LLMRequest, LLMStreamResponse, Passage};
-use futures_util::Stream;
-use futures_util::StreamExt;
+use futures_util::{Stream, StreamExt};
 use std::pin::Pin;
 
+/// Generates an answer using an LLM (e.g., vLLM, Ollama) via an OpenAI-compatible API.
+///
+/// # Arguments
+/// * `question` - The user's question.
+/// * `context` - Retrieved passages to act as knowledge.
+/// * `llm_uri` - The API endpoint (e.g., "http://localhost:8000/v1/chat/completions").
+/// * `model` - The model name (e.g., "mistral-7b").
 pub async fn generate_answer(
     question: &str,
     context: &[Passage],
+    llm_uri: &str,
+    model: &str,
 ) -> Result<
     Pin<Box<dyn Stream<Item = Result<String, Box<dyn std::error::Error>>> + Send>>,
     Box<dyn std::error::Error>,
 > {
-    let llm_uri = std::env::var("LLM_URI").expect("Set env variable LLM_URI first!");
-    let model_hash = std::env::var("MODEL_HASH").expect("Set env variable MODEL_HASH first!");
-    let system_prompt =
-        std::env::var("SYSTEM_PROMPT").expect("Set env variable SYSTEM_PROMPT first!");
+    let api_key = std::env::var("LLM_API_KEY").ok();
+    let system_prompt_base =
+        "You are an expert assistant. Answer strictly based on the provided context.";
 
     let context_text = context
         .iter()
         .enumerate()
-        .map(|(i, passage)| format!("Passage {}: {}", i + 1, passage.text))
+        .map(|(i, passage)| format!("[PASSAGE {}]\n{}", i + 1, passage.text))
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    let system_prompt = format!(
-        "{} \n
-        [PASSAGES] :\n{}",
-        system_prompt, context_text
-    );
-
+    let system_prompt = format!("{}\n\n{}", system_prompt_base, context_text);
     let user_prompt = format!("QUESTION: {}\n", question);
 
     let llm_request = LLMRequest {
-        model: model_hash.to_string(),
+        model: model.to_string(),
         messages: vec![
             LLMMessage {
                 role: "system".to_string(),
@@ -46,10 +48,16 @@ pub async fn generate_answer(
     };
 
     let client = reqwest::Client::new();
-    let response = client.post(llm_uri).json(&llm_request).send().await?;
+    let mut request_builder = client.post(llm_uri).json(&llm_request);
+
+    if let Some(token) = api_key {
+        request_builder = request_builder.header("Authorization", format!("Bearer {}", token));
+    }
+
+    let response = request_builder.send().await?;
 
     if !response.status().is_success() {
-        return Err(format!("Erreur LLM: {}", response.status()).into());
+        return Err(format!("LLM Error: {}", response.status()).into());
     }
 
     let byte_stream = response.bytes_stream();
@@ -66,16 +74,11 @@ pub async fn generate_answer(
                         if json_str == "[DONE]" {
                             return Some(Ok("[DONE]".to_string()));
                         }
-
                         if let Ok(event) = serde_json::from_str::<LLMStreamResponse>(json_str) {
-                            if let Some(choice) = event.choices.first() {
-                                let content = &choice.delta.content;
-                                parts.push(content.clone());
-                            }
+                            parts.push(event.choices[0].delta.content.clone());
                         }
                     }
                 }
-
                 if parts.is_empty() {
                     None
                 } else {

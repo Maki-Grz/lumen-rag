@@ -1,22 +1,30 @@
-use mongodb::bson::{doc, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 
+/// Represents a chunk of text processed by the RAG pipeline.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Passage {
+    /// Unique identifier for the passage.
+    /// If using MongoDB, this maps to the ObjectId string.
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<String>,
 
+    /// The content of the passage.
     pub text: String,
+
+    /// The computed vector embedding.
     pub embedding: Vec<f32>,
 
+    /// Optional metadata associated with the passage.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
 
+    /// A hash of the text content, used for deduplication.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hash: Option<i64>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+/// Metadata associated with a source document.
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct Metadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -31,37 +39,27 @@ pub struct Metadata {
     pub url: Option<String>,
 }
 
-#[derive(Deserialize)]
+/// Request payload for ingesting text.
+#[derive(Deserialize, Debug)]
 pub struct IngestRequest {
     pub text: String,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct IngestResponse {
     pub passage_ids: Vec<String>,
     pub count: usize,
 }
 
-#[derive(Deserialize)]
+/// Request payload for asking a question.
+#[derive(Deserialize, Debug)]
 pub struct QuestionRequest {
     pub question: String,
 }
 
-#[derive(Serialize)]
-pub struct AnswerResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub answer: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub passages: Option<Vec<Passage>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fallback_reason: Option<String>,
-}
-
+// Internal structures for LLM communication
 #[derive(Serialize, Clone, Debug)]
 pub struct LLMRequest {
     pub model: String,
@@ -69,25 +67,23 @@ pub struct LLMRequest {
     pub stream: bool,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LLMMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct LLMStreamResponse {
     pub choices: Vec<LLMChoice>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct LLMChoice {
-    pub index: usize,
-    pub finish_reason: Option<String>,
     pub delta: LLMStreamMessage,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LLMStreamMessage {
-    pub content: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct LLMMessage {
-    pub role: String,
     pub content: String,
 }
