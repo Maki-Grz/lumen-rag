@@ -52,7 +52,7 @@ impl VectorStore for HanaStore {
             );
 
             let mut stmt = self.connection.prepare(&query)?;
-            stmt.execute((&id, &p.text, &vec_str, hash as i64, hash as i64))?;
+            stmt.execute(&(&id, &p.text, &vec_str, hash as i64, hash as i64))?;
 
             inserted_ids.push(id);
         }
@@ -67,11 +67,12 @@ impl VectorStore for HanaStore {
         );
 
         let mut stmt = self.connection.prepare(&query)?;
-        let result = stmt.execute((&vec_str,))?;
+        let result = stmt.execute(&(&vec_str,))?;
         let rows = result.into_result_set()?;
 
         let mut passages = Vec::new();
         for row in rows {
+            let row = row?;
             let (_id, text, emb_str, hash): (String, String, String, i64) = row.try_into()?;
 
             let embedding: Vec<f32> = emb_str

@@ -122,7 +122,7 @@ impl VectorStore for QdrantStore {
                 .vectors
                 .and_then(|v| v.vectors_options)
                 .and_then(|v| match v {
-                    vectors_output::VectorsOptions::Vector(v) => Some(v.data),
+                    vectors_output::VectorsOptions::Vector(v) => Some(v.vector),
                     _ => None,
                 })
                 .unwrap_or_default();
