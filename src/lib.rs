@@ -1,12 +1,12 @@
 //! # Lumen RAG Framework
 //!
 //! Lumen is a modular Retrieval-Augmented Generation framework for Rust.
-//! It allows you to build RAG pipelines using interchangeable vector stores (MongoDB, Qdrant).
+//! It allows you to build RAG pipelines using interchangeable vector stores (MongoDB, Qdrant, SAP HANA Cloud).
 //!
 //! ## Example
 //! ```rust,no_run
 //! use lumen_rag::{VectorStore, types::Passage};
-//! // Initialize a specific store (e.g. MongoStore) via feature flags
+//! // Initialize a specific store (e.g. HanaStore) via feature flags
 //! ```
 
 pub mod config;
@@ -16,12 +16,7 @@ pub mod store;
 pub mod types;
 pub mod utils;
 
-mod stores {
-    #[cfg(feature = "mongodb")]
-    pub mod mongo;
-    #[cfg(feature = "qdrant")]
-    pub mod qdrant;
-}
+pub mod stores;
 
 pub use store::VectorStore;
 pub use types::{IngestRequest, IngestResponse, Metadata, Passage, QuestionRequest};
@@ -31,3 +26,6 @@ pub use stores::mongo::MongoStore;
 
 #[cfg(feature = "qdrant")]
 pub use stores::qdrant::QdrantStore;
+
+#[cfg(feature = "hana")]
+pub use stores::hana::HanaStore;
