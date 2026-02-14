@@ -24,7 +24,7 @@ async fn ingest(store: web::Data<HanaStore>, req: web::Json<IngestRequest>) -> i
 }
 
 #[post("/search")]
-async fn search(store: web::Data<HanaStore>, req: web::Json<QuestionRequest>) -> impl Responder {
+async fn search(store: web::Data<HanaStore>, _req: web::Json<QuestionRequest>) -> impl Responder {
     let query_embedding = vec![0.1, 0.2, 0.3];
     match store.search(&query_embedding, 5).await {
         Ok(passages) => HttpResponse::Ok().json(passages),
