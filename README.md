@@ -6,7 +6,7 @@
 
 **Lumen** is a high-performance, modular, and database-agnostic **RAG (Retrieval-Augmented Generation)** framework written in Rust. 
 
-It abstracts the complexity of vector storage and retrieval, allowing you to switch seamlessy between **MongoDB**, **CosmosDB**, **Qdrant**, and **SAP HANA Cloud**, while providing built-in support for state-of-the-art embeddings (BERT) via `candle`.
+It abstracts the complexity of vector storage and retrieval, allowing you to switch seamlessly between **MongoDB**, **CosmosDB**, **Qdrant**, and **SAP HANA Cloud**, while providing built-in support for state-of-the-art embeddings (BERT) via `candle`.
 
 ## 🚀 Features
 
