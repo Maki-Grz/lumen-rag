@@ -8,6 +8,7 @@ use regex::Regex;
 use std::sync::Arc;
 use tokio::task;
 
+#[derive(Debug)]
 pub struct HanaStore {
     connection: Arc<Connection>,
     table_name: String,
