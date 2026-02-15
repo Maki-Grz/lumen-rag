@@ -8,7 +8,7 @@ repository = "https://github.com/Maki-Grz/lumen-rag"
 homepage = "https://github.com/Maki-Grz/lumen-rag"
 documentation = "https://docs.rs/lumen-rag"
 readme = "README.md"
-keywords = ["rag", "llm", "search", "vector-database", "nlp", "sap-hana"]
+keywords = ["rag", "llm", "search", "vector-database", "sap-hana"]
 categories = ["science", "web-programming"]
 exclude = ["/tests", "/examples", ".github"]
 
