@@ -6,11 +6,11 @@
 
 **Lumen** is a high-performance, modular, and database-agnostic **RAG (Retrieval-Augmented Generation)** framework written in Rust. 
 
-It abstracts the complexity of vector storage and retrieval, allowing you to switch seamlessy between **MongoDB**, **CosmosDB**, and **Qdrant**, while providing built-in support for state-of-the-art embeddings (BERT) via `candle`.
+It abstracts the complexity of vector storage and retrieval, allowing you to switch seamlessy between **MongoDB**, **CosmosDB**, **Qdrant**, and **SAP HANA Cloud**, while providing built-in support for state-of-the-art embeddings (BERT) via `candle`.
 
 ## 🚀 Features
 
-- **🔌 Modular Backends**: Switch between MongoDB (Atlas/Local) and Qdrant with Feature Flags.
+- **🔌 Modular Backends**: Switch between MongoDB, Qdrant, and SAP HANA Cloud with Feature Flags.
 - **⚡ High Performance**: Built on `Tokio`, `Actix-web`, and `Rayon` for async and parallel processing.
 - **🧠 Local Embeddings**: Integrated BERT support using Hugging Face's `candle` (no external API needed for embeddings).
 - **📄 Smart Chunking**: Intelligent text segmentation preserving semantic context.
@@ -25,9 +25,11 @@ Add `lumen-rag` to your `Cargo.toml`. Select the database backend you need:
 # For MongoDB or CosmosDB support
 lumen-rag = { version = "0.1.0", features = ["mongodb"] }
 
-# OR for Qdrant support
+# For Qdrant support
 lumen-rag = { version = "0.1.0", features = ["qdrant"] }
 
+# For SAP HANA Cloud support
+lumen-rag = { version = "0.1.0", features = ["hana"] }
 ```
 
 ## 🛠️ Configuration
@@ -36,11 +38,8 @@ Lumen uses environment variables for configuration. Create a `.env` file in your
 
 ```ini
 # --- LLM Settings ---
-# URL to your LLM provider (Ollama, OpenAI, Groq, etc.)
-LLM_URI=[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)
-# Model name
+LLM_URI=https://api.openai.com/v1/chat/completions
 MODEL=gpt-3.5-turbo
-# (Optional) API Key if using a cloud provider
 LLM_API_KEY=sk-your-api-key-here
 
 # --- Database Settings ---
@@ -51,62 +50,10 @@ COLLECTION=knowledge_base
 
 # Qdrant
 QDRANT_URI=http://localhost:6334
-```
 
-## ⚡ Quick Start
-
-### 1. Setup Infrastructure
-
-You can easily start the required databases using Docker:
-
-```bash
-# Start MongoDB and Qdrant
-docker run -d -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password mongo:latest
-docker run -d -p 6333:6333 -p 6334:6334 qdrant/qdrant:latest
-
-```
-
-### 2. Run the Examples
-
-We provide full server examples in the `examples/` folder.
-
-**Using MongoDB:**
-
-```bash
-cargo run --example server_mongo --features mongodb
-
-```
-
-**Using Qdrant:**
-
-```bash
-cargo run --example server_qdrant --features qdrant
-
-```
-
-### 3. Test the API
-
-#### Ingest a Document (Indexing)
-
-```bash
-curl -X POST [http://127.0.0.1:8080/ingest](http://127.0.0.1:8080/ingest) \
-   -H "Content-Type: application/json" \
-   -d '{
-     "text": "Rust is a systems programming language focused on safety and performance.",
-     "metadata": {"source": "wikipedia"}
-   }'
-
-```
-
-#### Ask a Question (RAG)
-
-```bash
-curl -X POST [http://127.0.0.1:8080/ask](http://127.0.0.1:8080/ask) \
-   -H "Content-Type: application/json" \
-   -d '{
-     "question": "What is Rust focused on?"
-   }'
-
+# SAP HANA Cloud
+HANA_URL=hdb://user:password@host:port
+HANA_TABLE=LUMEN_RAG_TABLE
 ```
 
 ## 🏗️ Architecture
@@ -119,7 +66,6 @@ pub trait VectorStore: Send + Sync {
     async fn add_passages(&self, passages: Vec<Passage>) -> Result<Vec<String>>;
     async fn search(&self, query_embedding: &[f32], limit: usize) -> Result<Vec<Passage>>;
 }
-
 ```
 
 ### Supported Stores
@@ -129,6 +75,10 @@ pub trait VectorStore: Send + Sync {
 | **MongoDB** | `mongodb` | Hybrid (Fetch + In-memory Cosine Similarity) |
 | **CosmosDB** | `mongodb` | Hybrid (Mongo API Compatible) |
 | **Qdrant** | `qdrant` | Native HNSW Vector Search |
+| **SAP HANA Cloud** | `hana` | Native Vector Search (REAL_VECTOR) |
+
+> [!WARNING]
+> **Experimental Feature**: SAP HANA Cloud support is currently in beta and has not been fully validated against a live instance.
 
 ## 🤝 Contributing
 
