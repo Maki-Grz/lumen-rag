@@ -8,6 +8,7 @@ use regex::Regex;
 use std::sync::Arc;
 use tokio::task;
 
+#[derive(Debug)]
 pub struct HanaStore {
     connection: Arc<Connection>,
     table_name: String,
@@ -41,7 +42,6 @@ impl VectorStore for HanaStore {
         task::spawn_blocking(move || {
             let mut inserted_ids = Vec::new();
 
-            // Re-creating the check inside spawn_blocking for convenience
             let create_query = format!(
                 "CREATE COLUMN TABLE {} (ID NVARCHAR(36) PRIMARY KEY, TEXT NCLOB, EMBEDDING REAL_VECTOR, HASH BIGINT, METADATA NCLOB)",
                 table_name
@@ -49,7 +49,7 @@ impl VectorStore for HanaStore {
             match conn.exec(&create_query) {
                 Ok(_) => (),
                 Err(e) => {
-                    if let Some(code) = e.server_error_code() {
+                    if let Some(code) = e.server_error().map(|se| se.code()) {
                         if code != 288 && code != 337 {
                             return Err(anyhow!("Failed to create table: {}", e));
                         }
@@ -102,7 +102,6 @@ impl VectorStore for HanaStore {
                 let row = row?;
                 let (id, text, emb_str, hash, metadata_str): (String, String, String, i64, Option<String>) = row.try_into()?;
 
-                // Robust embedding parsing
                 let embedding: Result<Vec<f32>> = emb_str
                     .trim_matches(|c| c == '[' || c == ']')
                     .split(',')
@@ -147,6 +146,9 @@ mod tests {
     fn test_hana_store_invalid_table_name() {
         let result = HanaStore::new("hdb://localhost:30015", "INVALID TABLE;".to_string());
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid table name"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid table name"));
     }
 }

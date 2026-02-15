@@ -4,7 +4,7 @@ use crate::utils::compute_hash;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use qdrant_client::qdrant::{
-    vectors_output, PointStruct, SearchPoints, UpsertPointsBuilder, Value,
+    vector_output, vectors_output, PointStruct, SearchPoints, UpsertPointsBuilder, Value,
 };
 use qdrant_client::{Payload, Qdrant};
 use std::collections::HashMap;
@@ -122,7 +122,10 @@ impl VectorStore for QdrantStore {
                 .vectors
                 .and_then(|v| v.vectors_options)
                 .and_then(|v| match v {
-                    vectors_output::VectorsOptions::Vector(v) => Some(v.data),
+                    vectors_output::VectorsOptions::Vector(v) => match v.into_vector() {
+                        vector_output::Vector::Dense(dv) => Some(dv.data),
+                        _ => None,
+                    },
                     _ => None,
                 })
                 .unwrap_or_default();
