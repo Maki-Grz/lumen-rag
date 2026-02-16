@@ -18,3 +18,4 @@ jobs:
         with:
           release-type: rust
           token: ${{ secrets.GITHUB_TOKEN }}
+          package-name: lumen-rag
