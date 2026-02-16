@@ -4,10 +4,9 @@ use crate::utils::compute_hash;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream::{FuturesUnordered, StreamExt};
-use mongodb::bson::{doc, oid::ObjectId, Bson};
+use mongodb::bson::{doc, Bson};
 use mongodb::{Client, Collection};
 use rayon::prelude::*;
-use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct MongoStore {
