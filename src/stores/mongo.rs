@@ -65,16 +65,6 @@ impl VectorStore for MongoStore {
                     }
                 }
 
-                let _id_filter = if let Some(ref id_str) = p.id {
-                    if let Ok(oid) = ObjectId::from_str(id_str) {
-                        Some(doc! { "_id": oid })
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-
                 match coll.insert_one(p).await {
                     Ok(res) => match res.inserted_id {
                         Bson::ObjectId(oid) => Ok(oid.to_string()),
@@ -121,7 +111,8 @@ impl VectorStore for MongoStore {
             })
             .collect();
 
-        scored_passages.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored_passages
+            .sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let result: Vec<Passage> = scored_passages
             .into_iter()
