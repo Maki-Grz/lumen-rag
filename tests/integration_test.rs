@@ -23,5 +23,5 @@ async fn test_full_pipeline_ingestion() {
 
     let stored_data = mock_store.storage.lock().unwrap();
     assert_eq!(stored_data.len(), passages.len());
-    assert_eq!(stored_data[0].text, "This is a test.");
+    assert_eq!(stored_data[0].text, text);
 }

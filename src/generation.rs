@@ -69,8 +69,7 @@ pub async fn generate_answer(
                 let mut parts = Vec::new();
 
                 for line in text.lines() {
-                    if line.starts_with("data: ") {
-                        let json_str = &line[6..];
+                    if let Some(json_str) = line.strip_prefix("data: ") {
                         if json_str == "[DONE]" {
                             return Some(Ok("[DONE]".to_string()));
                         }

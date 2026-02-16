@@ -4,10 +4,9 @@ use crate::utils::compute_hash;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream::{FuturesUnordered, StreamExt};
-use mongodb::bson::{doc, oid::ObjectId, Bson};
+use mongodb::bson::{doc, Bson};
 use mongodb::{Client, Collection};
 use rayon::prelude::*;
-use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct MongoStore {
@@ -65,16 +64,6 @@ impl VectorStore for MongoStore {
                     }
                 }
 
-                let _id_filter = if let Some(ref id_str) = p.id {
-                    if let Ok(oid) = ObjectId::from_str(id_str) {
-                        Some(doc! { "_id": oid })
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-
                 match coll.insert_one(p).await {
                     Ok(res) => match res.inserted_id {
                         Bson::ObjectId(oid) => Ok(oid.to_string()),
@@ -117,7 +106,7 @@ impl VectorStore for MongoStore {
             .par_iter()
             .map(|p| {
                 let sim = Self::cosine_similarity(query_embedding, &p.embedding);
-                (p.clone(), sim)
+                (p, sim)
             })
             .collect();
 
@@ -127,7 +116,7 @@ impl VectorStore for MongoStore {
         let result: Vec<Passage> = scored_passages
             .into_iter()
             .take(limit)
-            .map(|(p, _)| p)
+            .map(|(p, _)| p.clone())
             .collect();
 
         Ok(result)

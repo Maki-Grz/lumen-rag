@@ -23,11 +23,9 @@ fn split_sections(text: &str) -> Vec<String> {
     let mut current = String::new();
 
     for line in text.lines() {
-        if re.is_match(line) {
-            if !current.trim().is_empty() {
-                sections.push(current.trim().to_string());
-                current.clear();
-            }
+        if re.is_match(line) && !current.trim().is_empty() {
+            sections.push(current.trim().to_string());
+            current.clear();
         }
         current.push_str(line);
         current.push('\n');
@@ -128,7 +126,7 @@ fn split_large_text(
 
         if end_idx < words.len() {
             // Check overlap
-            let overlap_text = keep_last_tokens(tokenizer, &chunks.last().unwrap(), overlap_tokens);
+            let overlap_text = keep_last_tokens(tokenizer, chunks.last().unwrap(), overlap_tokens);
             let overlap_words: Vec<&str> = overlap_text.split_whitespace().collect();
             // Move start_idx back by the number of overlapping words
             start_idx = end_idx.saturating_sub(overlap_words.len());
