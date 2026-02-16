@@ -9,6 +9,7 @@
 //! // Initialize a specific store (e.g. HanaStore) via feature flags
 //! ```
 
+// Test comment for CI/CD workflow validation
 pub mod config;
 pub mod generation;
 pub mod ingestion;
