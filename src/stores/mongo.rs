@@ -117,17 +117,16 @@ impl VectorStore for MongoStore {
             .par_iter()
             .map(|p| {
                 let sim = Self::cosine_similarity(query_embedding, &p.embedding);
-                (p.clone(), sim)
+                (p, sim)
             })
             .collect();
 
-        scored_passages
-            .sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored_passages.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let result: Vec<Passage> = scored_passages
             .into_iter()
             .take(limit)
-            .map(|(p, _)| p)
+            .map(|(p, _)| p.clone())
             .collect();
 
         Ok(result)
