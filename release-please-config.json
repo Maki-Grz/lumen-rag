@@ -1,0 +1,14 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "rust",
+      "package-name": "lumen-rag",
+      "initial-version": "0.2.1"
+    }
+  },
+  "plugins": [
+    {
+      "type": "sentence-case"
+    }
+  ]
+}
