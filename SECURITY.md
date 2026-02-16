@@ -1,6 +1,6 @@
-# Security Policy for gitbook2text
+# Security Policy for lumen-rag
 
-We take security seriously ! If you find a vulnerability, please report it **privately** so we can fix it before it affects users.
+We take security seriously! If you find a vulnerability, please report it **privately** so we can fix it before it affects users.
 
 ---
 
@@ -11,28 +11,18 @@ We take security seriously ! If you find a vulnerability, please report it **pri
 
   * Description of the issue
   * Steps to reproduce
-  * GitBook version or environment details
+  * Environment details
   * Possible impact
 
-We aim to acknowledge all reports within **96 hours**.
+We aim to acknowledge all reports within **48-96 hours**.
 
 ---
 
 ## Supported Versions
 
-* **v0.3.x** – current stable version (receives all updates)
-* **v0.2.x** – legacy support (critical fixes only)
+* **v0.2.x** – current stable version (receives all updates)
 
 Older versions may not receive fixes. Upgrade to the latest version for security.
-
----
-
-## Security Tips for Users
-
-* Always use the **latest release**.
-* Be careful when crawling untrusted GitBooks.
-* Consider running the CLI in an **isolated environment**.
-* Verify downloaded content before using it in automated pipelines.
 
 ---
 

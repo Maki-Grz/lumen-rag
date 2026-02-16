@@ -57,12 +57,26 @@ cargo test
 1. Create a new branch for your changes:
 
 ```bash
-git checkout -b feature/my-new-feature
+git checkout -b feat/my-new-feature
 ```
 
 2. Make your changes in the code or documentation.
 
-3. Ensure your code is formatted and passes clippy checks:
+3. Use **Conventional Commits** for your commit messages. This project uses [Release Please](https://github.com/googleapis/release-please) to automate releases.
+
+   Common prefixes:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation changes
+   - `style:` for formatting changes
+   - `refactor:` for code changes that neither fix a bug nor add a feature
+   - `perf:` for performance improvements
+   - `test:` for adding missing tests or correcting existing tests
+   - `chore:` for updating build tasks, package manager configs, etc.
+
+   Example: `feat: add support for Redis vector store`
+
+4. Ensure your code is formatted and passes clippy checks:
 
 ```bash
 cargo fmt

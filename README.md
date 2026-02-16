@@ -23,13 +23,13 @@ Add `lumen-rag` to your `Cargo.toml`. Select the database backend you need:
 ```toml
 [dependencies]
 # For MongoDB or CosmosDB support
-lumen-rag = { version = "0.1.0", features = ["mongodb"] }
+lumen-rag = { version = "0.2.1", features = ["mongodb"] }
 
 # For Qdrant support
-lumen-rag = { version = "0.1.0", features = ["qdrant"] }
+lumen-rag = { version = "0.2.1", features = ["qdrant"] }
 
 # For SAP HANA Cloud support
-lumen-rag = { version = "0.1.0", features = ["hana"] }
+lumen-rag = { version = "0.2.1", features = ["hana"] }
 ```
 
 ## 🛠️ Configuration
@@ -82,12 +82,12 @@ pub trait VectorStore: Send + Sync {
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request. For detailed information, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create your feature branch (`git checkout -b feat/AmazingFeature`)
+3. Commit your changes using **Conventional Commits** (`git commit -m 'feat: add some AmazingFeature'`)
+4. Push to the branch (`git push origin feat/AmazingFeature`)
 5. Open a Pull Request
 
 ## 📄 License
